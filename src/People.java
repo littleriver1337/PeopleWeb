@@ -14,6 +14,8 @@ public class People {
     public static void main(String[] args) {
         ArrayList<Person> people = new ArrayList();
 
+        final int SHOW_COUNT = 20;
+
         String fileContent = readFile("people.csv");
         String[] lines = fileContent.split("\n");
 
@@ -36,11 +38,19 @@ public class People {
                         offsetNum = Integer.valueOf(offset);
                     }
                     ArrayList<Person> tempList = new ArrayList(people.subList(
-                            Math.min(people.size(), offsetNum),
-                            Math.min(people.size(), offsetNum + 20)));
+                            Math.max(0, Math.min(people.size(), offsetNum)),
+                            Math.max(0, Math.min(people.size(), offsetNum + SHOW_COUNT))
+                    ));
                     HashMap m = new HashMap();
                     m.put("people", tempList);
-                    m.put("offset", offsetNum + 20);
+                    m.put("oldOffset", offsetNum - SHOW_COUNT);
+                    m.put("offset", offsetNum + SHOW_COUNT);
+
+                    boolean showPrevious = offsetNum > 0;
+                    m.put("showPrevious", showPrevious);
+
+                    boolean showNext = offsetNum + SHOW_COUNT < people.size();
+                    m.put("showNext", showNext);
                     return new ModelAndView(m, "people.html");
                 }),
                 new MustacheTemplateEngine()
@@ -52,7 +62,6 @@ public class People {
                 (request, response) -> {
 
                     HashMap newM = new HashMap();
-
 
                     try {
                         String id = request.queryParams("id");
