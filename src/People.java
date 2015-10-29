@@ -27,7 +27,7 @@ public class People {
         }
         Spark.get(
                 "/",
-                ((request, response) -> {
+                ((request, response) -> {//anon function
                     String offset = request.queryParams("offset");
                     int offsetNum;
                     if (offset == null){
@@ -35,7 +35,9 @@ public class People {
                     }else {
                         offsetNum = Integer.valueOf(offset);
                     }
-                    ArrayList<Person> tempList = new ArrayList(people.subList(offsetNum, offsetNum + 20));
+                    ArrayList<Person> tempList = new ArrayList(people.subList(
+                            Math.min(people.size(), offsetNum),
+                            Math.min(people.size(), offsetNum + 20)));
                     HashMap m = new HashMap();
                     m.put("people", tempList);
                     m.put("offset", offsetNum + 20);
