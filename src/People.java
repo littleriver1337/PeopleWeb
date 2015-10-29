@@ -43,16 +43,28 @@ public class People {
                 }),
                 new MustacheTemplateEngine()
         );
-        Spark.get(
+        Spark.get(/*Referred to Alex in terms of People template.  I couldn't figure out
+                    why my detailed information button was returning the same list for every name
+                    ++1 Alex (credit where credit is due)*/
                 "/person",
-                ((request, response) -> {
+                (request, response) -> {
+
                     HashMap newM = new HashMap();
-                    newM.put("person", people);
+
+
+                    try {
+                        String id = request.queryParams("id");
+                        int idNum = Integer.valueOf(id);
+                        Person person = people.get(idNum - 1);
+                        newM.put("person", person);
+                    }
+                    catch (Exception e) {
+
+
+                    }
                     return new ModelAndView(newM, "person.html");
 
-                    //response.redirect("/");
-                   //return ""
-                }),
+                },
                 new MustacheTemplateEngine()
         );
     }
