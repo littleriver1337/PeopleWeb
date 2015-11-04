@@ -1,3 +1,4 @@
+import org.h2.command.Prepared;
 import spark.ModelAndView;
 import spark.Spark;
 import spark.template.mustache.MustacheTemplateEngine;
@@ -36,20 +37,15 @@ public class People {
         if(results.next()){
             person = new Person();
             person.id = results.getInt("id");
+            person.firstName = results.getString("first_name");
+            person.lastName = results.getString("last_name");
+            person.email = results.getString("email");
+            person.country = results.getString("country");
+            person.ip = results.getString("ip");
         }
         return person;
     }
-
-
-
-    public static void main(String[] args) throws SQLException {
-        Connection conn = DriverManager.getConnection("jdbc:h2:./main");
-        createTables(conn);
-
-        ArrayList<Person> people = new ArrayList();
-
-        final int SHOW_COUNT = 20;
-
+    public static void populateDatabase(Connection conn) throws SQLException {
         String fileContent = readFile("people.csv");
         String[] lines = fileContent.split("\n");
 
@@ -59,8 +55,44 @@ public class People {
 
             String[] columns = line.split(",");
             Person person = new Person(Integer.valueOf(columns[0]), columns[1], columns[2], columns[3], columns[4], columns[5]);
-            people.add(person);
+
+            PreparedStatement stmt = conn.prepareStatement("INSERT INTO people VALUES (NULL, ?, ?, ?, ?, ?)");
+            stmt.setString(1, person.firstName);
+            stmt.setString(2, person.lastName);
+            stmt.setString(3, person.email);
+            stmt.setString(4, person.country);
+            stmt.setString(5, person.ip);
+            stmt.execute();
         }
+    }
+
+    public static ArrayList<Person> selectPeople(Connection conn, int offset) throws SQLException {
+        ArrayList<Person> select = new ArrayList();
+        PreparedStatement stmt = conn.prepareStatement("SELECT * FROM people LIMIT 20 OFFSET ?");
+        stmt.setInt(1, offset);
+        ResultSet results = stmt.executeQuery();
+        while (results.next()){
+            Person person = new Person();
+            person.id = results.getInt("id");
+            person.firstName = results.getString("first_name");
+            person.lastName = results.getString("last_name");
+            person.email = results.getString("email");
+            person.country = results.getString("country");
+            person.ip = results.getString("ip");
+            select.add(person);
+        }
+        return select;
+    }
+
+
+    public static void main(String[] args) throws SQLException {
+        Connection conn = DriverManager.getConnection("jdbc:h2:./main");
+        createTables(conn);
+        populateDatabase(conn);
+
+        final int SHOW_COUNT = 20;
+
+
         Spark.get(
                 "/",
                 ((request, response) -> {//anon function
@@ -71,20 +103,16 @@ public class People {
                     }else {
                         offsetNum = Integer.valueOf(offset);
                     }
-                    ArrayList<Person> tempList = new ArrayList(people.subList(
-                            Math.max(0, Math.min(people.size(), offsetNum)),
-                            Math.max(0, Math.min(people.size(), offsetNum + SHOW_COUNT))
-                    ));
+                    ArrayList<Person> tempList = selectPeople(conn, offsetNum);
+
                     HashMap m = new HashMap();
                     m.put("people", tempList);
                     m.put("oldOffset", offsetNum - SHOW_COUNT);
                     m.put("offset", offsetNum + SHOW_COUNT);
 
-                    boolean showPrevious = offsetNum > 0;
-                    m.put("showPrevious", showPrevious);
+                    m.put("showPrevious", true);
 
-                    boolean showNext = offsetNum + SHOW_COUNT < people.size();
-                    m.put("showNext", showNext);
+                    m.put("showNext", true);
                     return new ModelAndView(m, "people.html");
                 }),
                 new MustacheTemplateEngine()
@@ -100,7 +128,7 @@ public class People {
                     try {
                         String id = request.queryParams("id");
                         int idNum = Integer.valueOf(id);
-                        Person person = people.get(idNum - 1);
+                        Person person = selectPerson(conn, idNum);
                         newM.put("person", person);
                     }
                     catch (Exception e) {
