@@ -11,6 +11,11 @@ import java.util.HashMap;
  * Created by zach on 10/19/15.
  */
 public class People {
+    public static void createTables(){
+
+    }
+
+
     public static void main(String[] args) {
         ArrayList<Person> people = new ArrayList();
 
